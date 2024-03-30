@@ -1,0 +1,170 @@
+function gbadditems() {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("INVOICE FORM");
+  var startRow = 20; // Start adding entries from row 20
+  var startColumn = 1; // Start adding entries from column A
+  var dataRange = sheet.getRange("B12:B15"); // Fetch data from cells B12 to B15
+  var newData = dataRange.getValues(); // Get the values from the data range
+  
+  // Find the next available row in column A
+  var blankRow;
+  for (var row = startRow; row <= sheet.getMaxRows(); row++) {
+    if (sheet.getRange(row, 1).getValue() == "") {
+      blankRow = row; // Store the empty row number
+      break; // Exit the loop after finding the first empty row
+    }
+  }
+  
+  // Loop through each value in newData
+  for (var i = 0; i < newData.length; i++) {
+    var newRow = blankRow; // The row is fixed at the empty row found earlier
+    var newColumn = startColumn + i; // Calculate the column for the new entry
+    
+    sheet.getRange(newRow, newColumn).setValue(newData[i][0]); // Set the value in the corresponding cell
+  }
+  
+  sheet.insertRowAfter(newRow);
+}
+
+
+function createInvoice() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var invoiceFormSheet = ss.getSheetByName("INVOICE FORM");
+  var printSheet = ss.getSheetByName("PRINT");
+  var settingsSheet = ss.getSheetByName("SETTINGS");
+
+  // Ensure all sheets exist
+  if (!invoiceFormSheet || !printSheet || !settingsSheet) {
+    Logger.log("Source or target sheet not found.");
+    return;
+  }
+
+  // Get the source range dynamically based on the actual data range
+  var lastRow = invoiceFormSheet.getLastRow();
+  var lastColumn = invoiceFormSheet.getLastColumn();
+  var sourceRange = invoiceFormSheet.getRange("A20:F" + lastRow);
+
+  // Get the target range starting from D27 onwards
+  var targetRange = printSheet.getRange("D27");
+
+  // Set values in the target range
+  sourceRange.copyTo(targetRange, SpreadsheetApp.CopyPasteType.PASTE_VALUES, false);
+}
+
+function calculate() {
+  var printSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("PRINT");
+  var settingsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("SETTINGS");
+
+  // Get the last row in the "PRINT" tab
+  var lastPrintRow = printSheet.getLastRow();
+
+  // Find the next empty row in column A of the "PRINT" tab
+  var nextEmptyRow = lastPrintRow + 1;
+  while (printSheet.getRange(nextEmptyRow, 1).getValue() != "") {
+    nextEmptyRow++;
+  }
+
+  // Insert a new row at the next empty row
+  printSheet.insertRowsAfter(lastPrintRow, 6);
+
+  // Get the range to copy from SETTINGS sheet (A4:D7)
+  var settingsRange1 = settingsSheet.getRange("A4:D7");
+
+  // Get the target range in the PRINT sheet for the first data set
+  var targetPrintRange1 = printSheet.getRange(nextEmptyRow, 6, settingsRange1.getNumRows(), settingsRange1.getNumColumns());
+
+  // Copy values, formats, and formulas from SETTINGS sheet to PRINT sheet for the first data set
+  settingsRange1.copyTo(targetPrintRange1, SpreadsheetApp.CopyPasteType.PASTE_NORMAL, false);
+
+  // Insert rows for the second data set and footer
+  printSheet.insertRowsAfter(nextEmptyRow + settingsRange1.getNumRows(), 3);
+
+  // Get the range to copy from SETTINGS sheet (A14:I15)
+  var settingsRange2 = settingsSheet.getRange("A14:I15");
+
+  // Get the target range in the PRINT sheet for the second data set
+  var targetPrintRange2 = printSheet.getRange(nextEmptyRow + settingsRange1.getNumRows() + 3, 1, settingsRange2.getNumRows(), settingsRange2.getNumColumns());
+
+  // Copy values, formats, and formulas from SETTINGS sheet to PRINT sheet for the second data set
+  settingsRange2.copyTo(targetPrintRange2, SpreadsheetApp.CopyPasteType.PASTE_NORMAL, false);
+
+   // Call the record function to apply formatting in the PRINT sheet
+  formattable();
+}
+
+function formattable() {
+  var printSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("PRINT");
+  
+  // Define the range to format
+  var rangeToFormat = printSheet.getRange("A27:I");
+
+  // Set the border style
+  rangeToFormat.setBorder(true, true, true, true, true, true, "white", SpreadsheetApp.BorderStyle.SOLID);
+
+  // Set the font color to black for visibility
+  rangeToFormat.setFontColor("black");
+}
+
+function record() {
+  // Get source and destination sheets
+  var printSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("PRINT");
+  var invoicelogsSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("INVOICE RECORDS");
+  
+  // Copy data from source to destination
+  var data1 = printSheet.getRange("C14").getValue();
+  var data2 = printSheet.getRange("H6").getValue();
+  var data3 = printSheet.getRange("H7").getValue();
+  var data4 = printSheet.getRange("H8").getValue();
+  var data5 = printSheet.getRange("F5").getValue(); 
+  
+  // Find the last row with data in column A of INVOICE RECORDS sheet
+  var lastRow = invoicelogsSheet.getLastRow();
+  
+  // If last row is not empty, insert a new row after it
+  if (invoicelogsSheet.getRange("A" + lastRow).getValue() != "") {
+    invoicelogsSheet.insertRowAfter(lastRow);
+    lastRow++;
+  }
+  
+  // Set values in the next available row
+  invoicelogsSheet.getRange("B" + lastRow).setValue(data1);
+  invoicelogsSheet.getRange("A" + lastRow).setValue(data2);
+  invoicelogsSheet.getRange("C" + lastRow).setValue(data3);
+  invoicelogsSheet.getRange("D" + lastRow).setValue(data4);
+  invoicelogsSheet.getRange("E" + lastRow).setValue(data5);
+}
+
+
+
+function cleardata() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var invoiceSheet = ss.getSheetByName("INVOICE FORM");
+  var printSheet = ss.getSheetByName("PRINT");
+
+  // Delete rows from 21 onwards in "Invoice Form" Sheet
+  var lastRow = invoiceSheet.getLastRow();
+  if (lastRow > 20) {
+    for (var i = lastRow; i > 20; i--) {
+      invoiceSheet.deleteRow(i);
+    }
+  }
+
+  // Clear content in row 20 in "Invoice Form" Sheet
+  invoiceSheet.getRange("A20:D20").clear({contentsOnly: true});
+
+  // Clear content in B6:B13 and B15 in "Invoice Form" Sheet
+  invoiceSheet.getRange("B6:B13").clearContent();
+  invoiceSheet.getRange("B15").clearContent();
+
+
+  // Delete rows from 28 onwards in "PRINT" Sheet
+  var lastRow = printSheet.getLastRow();
+  if (lastRow > 27) {
+    for (var i = lastRow; i > 27; i--) {
+      printSheet.deleteRow(i);
+    }
+  }
+
+// Clear content in row 27 in "PRINT" Sheet
+  printSheet.getRange("D27:I27").clear({contentsOnly: true});
+
+}
